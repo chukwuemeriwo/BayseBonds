@@ -46,7 +46,7 @@ export default function BayseBondsApp({ initial }: { initial: BondsPayload }) {
       ),
     [initial.bonds, state],
   );
-  const aggregates = useMemo(() => aggregate(bonds), [bonds]);
+  const aggregates = useMemo(() => aggregate(bonds, state.currency), [bonds, state.currency]);
   const unavailable = !!initial.error && initial.bonds.length === 0;
 
   return (
@@ -62,12 +62,13 @@ export default function BayseBondsApp({ initial }: { initial: BondsPayload }) {
         </div>
       ) : (
         <>
-          <Hero aggregates={aggregates} year={initial.year} />
+          <Hero aggregates={aggregates} year={initial.year} currency={state.currency} />
           <main className="mx-auto max-w-[1200px] px-4 md:px-6">
             <Controls state={state} onChange={update} />
             <BondTable
               bonds={bonds}
               amount={state.amount}
+              currency={state.currency}
               sort={state.sort}
               onSort={(sort) => update({ sort })}
               visibleCount={visibleCount}

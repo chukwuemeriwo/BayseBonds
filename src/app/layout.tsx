@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import { Albert_Sans, Alumni_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const albert = Albert_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-albert" });
-const alumni = Alumni_Sans({ subsets: ["latin"], weight: ["700"], variable: "--font-alumni" });
-const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-jetbrains" });
+const albert = Albert_Sans({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "600"], variable: "--font-albert" });
+const alumni = Alumni_Sans({ subsets: ["latin", "latin-ext"], weight: ["700"], variable: "--font-alumni" });
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
+  variable: "--font-jetbrains",
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "monospace"],
+});
 
 const TITLE = "BayseBonds: near-certain Bayse predictions ending this year";
 const SHARE_DESCRIPTION = "Near-certain Bayse predictions that pay out before Dec 31 — liquidity, returns, and trade links.";
@@ -17,7 +23,7 @@ const ICON =
 export const metadata: Metadata = {
   title: TITLE,
   description:
-    "Screen near-certain Bayse markets priced 95¢–99.5¢ that pay out before Dec 31. See total liquidity, returns, and trade links.",
+    "Screen near-certain Bayse markets priced ₦95–₦99.5 per ₦100 share that pay out before Dec 31. See total liquidity, returns, and trade links.",
   icons: { icon: ICON },
   openGraph: { title: TITLE, description: SHARE_DESCRIPTION, type: "website" },
   twitter: { card: "summary_large_image", title: TITLE, description: SHARE_DESCRIPTION },

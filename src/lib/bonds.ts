@@ -130,7 +130,27 @@ export const isAcceptableQuote = (quote: BayseQuote | null | undefined): quote i
   quote.price >= MIN_BUY_PRICE &&
   quote.price <= MAX_BUY_PRICE;
 
-export const buildBond = ({ event, market, outcome, end }: Candidate, buyPrice: number, now: Date): Bond => {
+export const eventLiquidity = (event: BayseEvent | undefined): number | undefined =>
+  typeof event?.liquidity === "number" ? event.liquidity : undefined;
+
+export function ngnLiquidityResolver(usdEvents: BayseEvent[], ngnEvents: BayseEvent[]): (event: BayseEvent) => number {
+  const ngnById = new Map(ngnEvents.map((event) => [event.id, eventLiquidity(event)]));
+  const rates = usdEvents
+    .map((event) => [eventLiquidity(event), ngnById.get(event.id)] as const)
+    .filter(([usd, ngn]) => !!usd && !!ngn)
+    .map(([usd, ngn]) => (ngn as number) / (usd as number))
+    .sort((a, b) => a - b);
+  if (rates.length === 0) throw new Error("Bayse NGN liquidity unavailable");
+  const rate = rates[Math.floor(rates.length / 2)];
+  return (event) => ngnById.get(event.id) ?? (eventLiquidity(event) ?? 0) * rate;
+}
+
+export const buildBond = (
+  { event, market, outcome, end }: Candidate,
+  buyPrice: number,
+  now: Date,
+  liquidityNgn: number,
+): Bond => {
   const ret = returnPct(buyPrice);
   const days = daysLeft(end, now);
   return {
@@ -141,7 +161,7 @@ export const buildBond = ({ event, market, outcome, end }: Candidate, buyPrice: 
     returnPct: ret,
     daysLeft: days,
     apy: apy(ret, days),
-    liquidity: typeof event.liquidity === "number" ? event.liquidity : 0,
+    liquidity: { USD: eventLiquidity(event) ?? 0, NGN: liquidityNgn },
     eventId: event.id,
     endDate: new Date(end).toISOString(),
     tradeUrl: `https://bayse.markets/market/${event.slug}`,

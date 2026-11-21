@@ -1,8 +1,8 @@
 "use client";
 
-import { CATEGORIES } from "@/lib/types";
-import { MIN_PRICES, type CategoryFilter, type Range, type SortKey, type ViewState } from "./filters";
-import { formatPrice } from "./format";
+import { CATEGORIES, CURRENCIES, type Currency } from "@/lib/types";
+import { DEFAULT_AMOUNTS, MIN_PRICES, type CategoryFilter, type Range, type SortKey, type ViewState } from "./filters";
+import { CURRENCY_SYMBOL, formatPrice } from "./format";
 
 const RANGE_TABS: { id: Range; label: string }[] = [
   { id: "week", label: "This week" },
@@ -14,6 +14,10 @@ const CATEGORY_TABS: { id: CategoryFilter; label: string }[] = [
   { id: "all", label: "All" },
   ...CATEGORIES.map((c) => ({ id: c, label: c })),
 ];
+
+const CURRENCY_TABS: { id: Currency; label: string }[] = CURRENCIES.map((c) => ({ id: c, label: CURRENCY_SYMBOL[c] }));
+
+const CURRENCY_NAMES: Record<Currency, string> = { NGN: "naira", USD: "dollars" };
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "liquidity", label: "Liquidity" },
@@ -86,7 +90,7 @@ export default function Controls({
             >
               {MIN_PRICES.map((value) => (
                 <option key={value} value={value}>
-                  {formatPrice(value)}
+                  {formatPrice(value, state.currency)}
                 </option>
               ))}
             </select>
@@ -116,20 +120,29 @@ export default function Controls({
             </select>
           </label>
         </div>
-        <label className="flex items-center gap-2 text-[14px] text-ink">
-          <span>If I put in $</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={state.amount.toLocaleString("en-US")}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/[^0-9]/g, "");
-              onChange({ amount: digits ? Number(digits) : 0 });
-            }}
-            aria-label="Investment amount in dollars"
-            className="h-9 w-[7.5rem] border border-hairline bg-surface px-2 text-right font-mono-num text-[14px] text-ink"
+        <div className="flex items-end gap-5">
+          <TabList
+            label="Currency"
+            tabs={CURRENCY_TABS}
+            active={state.currency}
+            size="text-[14px]"
+            onSelect={(currency) => onChange({ currency, amount: DEFAULT_AMOUNTS[currency] })}
           />
-        </label>
+          <label className="flex items-center gap-2 text-[14px] text-ink">
+            <span>If I put in {CURRENCY_SYMBOL[state.currency]}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={state.amount.toLocaleString("en-US")}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/[^0-9]/g, "");
+                onChange({ amount: digits ? Number(digits) : 0 });
+              }}
+              aria-label={`Investment amount in ${CURRENCY_NAMES[state.currency]}`}
+              className="h-9 w-[7.5rem] border border-hairline bg-surface px-2 text-right font-mono-num text-[14px] text-ink"
+            />
+          </label>
+        </div>
       </div>
       <TabList
         label="Category"

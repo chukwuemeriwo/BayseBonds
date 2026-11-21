@@ -2,13 +2,14 @@ import { unstable_cache } from "next/cache";
 import {
   buildBond,
   dedupeBonds,
+  ngnLiquidityResolver,
   isAcceptableQuote,
   selectCandidates,
   type BayseEvent,
   type BayseQuote,
   type Candidate,
 } from "./bonds";
-import type { Bond, BondsPayload } from "./types";
+import type { Bond, BondsPayload, Currency } from "./types";
 
 const API_BASE = "https://relay.bayse.markets/v1/pm";
 const PAGE_SIZE = 100;
@@ -76,16 +77,16 @@ async function fetchJson<T>(url: string, init: FetchInit, attempt = 0): Promise<
   return fetchJson<T>(url, init, attempt + 1);
 }
 
-const fetchEventsPage = (page: number) =>
-  fetchJson<EventsPage>(`${API_BASE}/events?page=${page}&size=${PAGE_SIZE}`, {
+const fetchEventsPage = (page: number, currency: Currency) =>
+  fetchJson<EventsPage>(`${API_BASE}/events?page=${page}&size=${PAGE_SIZE}&currency=${currency}`, {
     next: { revalidate: REVALIDATE_SECONDS },
   });
 
-export async function fetchAllEvents(): Promise<BayseEvent[]> {
-  const first = await fetchEventsPage(1);
+export async function fetchAllEvents(currency: Currency = "USD"): Promise<BayseEvent[]> {
+  const first = await fetchEventsPage(1, currency);
   const lastPage = Math.max(1, first.pagination?.lastPage ?? 1);
   const rest = await Promise.allSettled(
-    Array.from({ length: lastPage - 1 }, (_, index) => fetchEventsPage(index + 2)),
+    Array.from({ length: lastPage - 1 }, (_, index) => fetchEventsPage(index + 2, currency)),
   );
   return [
     ...(first.events ?? []),
@@ -130,7 +131,8 @@ export async function mapPool<T, R>(
 }
 
 async function buildPayload(now: Date): Promise<BondsPayload> {
-  const events = await fetchAllEvents();
+  const [events, ngnEvents] = await Promise.all([fetchAllEvents("USD"), fetchAllEvents("NGN").catch(() => [])]);
+  const liquidityNgn = ngnLiquidityResolver(events, ngnEvents);
   const candidates = selectCandidates(events, now);
   const quotes = await mapPool(candidates, QUOTE_CONCURRENCY, fetchQuote);
   if (candidates.length > 0 && quotes.every((result) => result.status === "rejected")) {
@@ -138,7 +140,7 @@ async function buildPayload(now: Date): Promise<BondsPayload> {
   }
   const bonds = quotes.flatMap((result, index): Bond[] =>
     result.status === "fulfilled" && isAcceptableQuote(result.value)
-      ? [buildBond(candidates[index], result.value.price, now)]
+      ? [buildBond(candidates[index], result.value.price, now, liquidityNgn(candidates[index].event))]
       : [],
   );
   return { bonds: dedupeBonds(bonds), fetchedAt: new Date().toISOString(), year: now.getUTCFullYear() };

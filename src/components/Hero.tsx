@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { MAX_BUY_PRICE, MIN_BUY_PRICE } from "@/lib/bonds";
+import type { Currency } from "@/lib/types";
 import type { Aggregates } from "./filters";
-import { formatLiquidity, formatPercent } from "./format";
+import { formatLiquidity, formatPercent, formatPriceRange } from "./format";
 
 const COUNT_UP_MS = 600;
 
-function CountUp({ value }: { value: number }) {
+function CountUp({ value, currency }: { value: number; currency: Currency }) {
   const target = Number.isFinite(value) && value > 0 ? value : 0;
   const [display, setDisplay] = useState(target);
 
@@ -29,8 +31,8 @@ function CountUp({ value }: { value: number }) {
   }, [target]);
 
   return (
-    <span className="font-display tabular-nums" aria-label={formatLiquidity(target)}>
-      {formatLiquidity(Math.max(0, display))}
+    <span className="font-display tabular-nums" aria-label={formatLiquidity(target, currency)}>
+      {formatLiquidity(Math.max(0, display), currency)}
     </span>
   );
 }
@@ -40,7 +42,15 @@ function nextPaysLabel(days: number | null): string {
   return days === 1 ? "next pays in 1 day" : `next pays in ${days} days`;
 }
 
-export default function Hero({ aggregates, year }: { aggregates: Aggregates; year: number }) {
+export default function Hero({
+  aggregates,
+  year,
+  currency,
+}: {
+  aggregates: Aggregates;
+  year: number;
+  currency: Currency;
+}) {
   const [open, setOpen] = useState(false);
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,7 +82,7 @@ export default function Hero({ aggregates, year }: { aggregates: Aggregates; yea
             <div ref={containerRef} className="relative">
               <div className="flex items-start gap-2 md:gap-3">
                 <p className="font-display text-[110px] leading-[0.85] tracking-[-0.04em] text-ink md:text-[200px]">
-                  <CountUp value={aggregates.totalLiquidity} />
+                  <CountUp value={aggregates.totalLiquidity} currency={currency} />
                 </p>
                 <button
                   type="button"
@@ -94,7 +104,7 @@ export default function Hero({ aggregates, year }: { aggregates: Aggregates; yea
                   <p className="text-[13px] font-medium text-ink">How this is calculated</p>
                   <p className="mt-2 text-[12px] leading-relaxed text-muted">
                     Sum of AMM pool liquidity across every event with a listed bond in the current filters — open binary
-                    markets with a fee-inclusive buy price of 95¢–99.5¢ that pay out by Dec 31 {year} (sports, player
+                    markets with a fee-inclusive buy price of {formatPriceRange(MIN_BUY_PRICE, MAX_BUY_PRICE, currency)} that pay out by Dec 31 {year} (sports, player
                     stats, esports, weather, and crypto price markets excluded). It is capital sitting in those pools,
                     not your personal profit.
                   </p>

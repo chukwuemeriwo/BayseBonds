@@ -9,6 +9,7 @@ import {
   isEligibleEvent,
   isInWindow,
   mapCategory,
+  ngnLiquidityResolver,
   resolveEndDate,
   returnPct,
   selectCandidates,
@@ -311,14 +312,14 @@ describe("quote acceptance", () => {
 describe("bond construction", () => {
   it("builds a bond from a real quote", () => {
     const [candidate] = selectCandidates([statePolice], NOW);
-    const bond = buildBond(candidate, statePoliceQuote.price, NOW);
+    const bond = buildBond(candidate, statePoliceQuote.price, NOW, 57464);
     expect(bond).toMatchObject({
       id: "82b248c8-edd2-42a9-8976-00d526c202ec:3f838e3f-0c8f-4199-88bc-60e3582351c5",
       question: statePolice.title,
       side: "NO",
       buyPrice: 0.9566,
       daysLeft: 40,
-      liquidity: 40,
+      liquidity: { USD: 40, NGN: 57464 },
       eventId: statePolice.id,
       endDate: "2026-12-30T22:59:00.000Z",
       tradeUrl: `https://bayse.markets/market/${statePolice.slug}`,
@@ -331,8 +332,30 @@ describe("bond construction", () => {
 
   it("defaults missing liquidity to zero and dedupes by id", () => {
     const [candidate] = selectCandidates([{ ...statePolice, liquidity: undefined }], NOW);
-    const bond = buildBond(candidate, 0.97, NOW);
-    expect(bond.liquidity).toBe(0);
+    const bond = buildBond(candidate, 0.97, NOW, 0);
+    expect(bond.liquidity).toEqual({ USD: 0, NGN: 0 });
     expect(dedupeBonds([bond, { ...bond }])).toHaveLength(1);
+  });
+});
+
+describe("naira liquidity", () => {
+  const usd = [
+    { ...statePolice, id: "a", liquidity: 100 },
+    { ...statePolice, id: "b", liquidity: 200 },
+    { ...statePolice, id: "c", liquidity: 50 },
+  ];
+
+  it("uses Bayse's NGN figure when present and the median rate otherwise", () => {
+    const ngn = [
+      { ...statePolice, id: "a", liquidity: 143_000 },
+      { ...statePolice, id: "b", liquidity: 288_000 },
+    ];
+    const resolve = ngnLiquidityResolver(usd, ngn);
+    expect(resolve(usd[0])).toBe(143_000);
+    expect(resolve(usd[2])).toBe(50 * 1440);
+  });
+
+  it("refuses to guess a rate without any NGN data", () => {
+    expect(() => ngnLiquidityResolver(usd, [])).toThrow();
   });
 });

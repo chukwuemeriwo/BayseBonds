@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import type { Bond } from "@/lib/types";
+import type { Bond, Currency } from "@/lib/types";
 import { PAGE_SIZE, type SortKey } from "./filters";
 import { formatApy, formatEnds, formatPrice, formatProfit } from "./format";
 
@@ -43,10 +43,10 @@ function TradeLink({ bond, className }: { bond: Bond; className: string }) {
   );
 }
 
-function bondCells(bond: Bond, amount: number, now: Date) {
+function bondCells(bond: Bond, amount: number, currency: Currency, now: Date) {
   return {
-    price: formatPrice(bond.buyPrice),
-    profit: formatProfit(amount * bond.returnPct),
+    price: formatPrice(bond.buyPrice, currency),
+    profit: formatProfit(amount * bond.returnPct, currency),
     ends: formatEnds(bond.daysLeft, new Date(bond.endDate), now),
     apy: formatApy(bond.apy),
   };
@@ -57,6 +57,7 @@ const SEPARATOR = <span className="text-muted"> · </span>;
 export default function BondTable({
   bonds,
   amount,
+  currency,
   sort,
   onSort,
   visibleCount,
@@ -64,6 +65,7 @@ export default function BondTable({
 }: {
   bonds: Bond[];
   amount: number;
+  currency: Currency;
   sort: SortKey;
   onSort: (column: SortKey) => void;
   visibleCount: number;
@@ -102,7 +104,7 @@ export default function BondTable({
           </thead>
           <tbody>
             {visible.map((bond) => {
-              const cells = bondCells(bond, amount, now);
+              const cells = bondCells(bond, amount, currency, now);
               return (
                 <tr key={bond.id} className="border-b border-hairline transition-colors hover:bg-row-hover">
                   <td className="max-w-[420px] truncate px-2 py-[18px] text-[14px] font-medium text-ink">
@@ -124,7 +126,7 @@ export default function BondTable({
       </div>
       <ul className="md:hidden">
         {visible.map((bond) => {
-          const cells = bondCells(bond, amount, now);
+          const cells = bondCells(bond, amount, currency, now);
           const parts = [
             <span key="side">{bond.side}</span>,
             <span key="price">{cells.price}</span>,
