@@ -26,7 +26,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${albert.variable} ${alumni.variable} ${jetbrains.variable} antialiased`}>{children}</body>
+      <body suppressHydrationWarning className={`${albert.variable} ${alumni.variable} ${jetbrains.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

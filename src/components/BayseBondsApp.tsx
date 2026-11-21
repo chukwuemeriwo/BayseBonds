@@ -15,17 +15,14 @@ export default function BayseBondsApp({ initial }: { initial: BondsPayload }) {
   const [state, setState] = useState<ViewState>(() => parseState(new URLSearchParams(searchParams.toString())));
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const update = useCallback(
-    (patch: Partial<ViewState>) => {
-      setState((prev) => {
-        const next = { ...prev, ...patch };
-        writeState(pathname, next);
-        return next;
-      });
-      setVisibleCount(PAGE_SIZE);
-    },
-    [pathname],
-  );
+  const update = useCallback((patch: Partial<ViewState>) => {
+    setState((prev) => ({ ...prev, ...patch }));
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  useEffect(() => {
+    writeState(pathname, state);
+  }, [pathname, state]);
 
   useEffect(() => {
     const onPopState = () => {
